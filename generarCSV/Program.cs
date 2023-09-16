@@ -27,7 +27,7 @@ namespace generarCSV
         {
             int num;
             // Comprueba si se pasa como parametro el numero de caracteres a generar
-            if (parametros != null)
+            if (parametros.Length>0)
             {
                 if (int.TryParse(parametros[0], out num))
                 {

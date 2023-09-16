@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // conjunto de atributos. Cambie estos valores de atributo para modificar la información
 // asociada a un ensamblado.
 [assembly: AssemblyTitle("generarCSV")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Genera Codigos Seguros de Verificacion (CSV)")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Carlos Clemente")]
 [assembly: AssemblyProduct("generarCSV")]
 [assembly: AssemblyCopyright("Copyright ©  2023")]
 [assembly: AssemblyTrademark("")]
