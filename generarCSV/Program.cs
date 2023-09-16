@@ -1,9 +1,9 @@
 ﻿/*  Generador de codigos seguros de verificacion (CSV)
     Creado por Carlos Clemente - sep/2023
     En cada ejecucion se genera una cadena de entre 6 y 10 caracteres de forma aleatoria (por defecto se generan 8)
-    y se le añade al principio los dias transcurridos desde el 01/01/2000 y al final los segundos del dia de hoy
-    hasta el momento de la generacion; si se pasa como parametro un numero fuera del intervalo (6 o 10), la cadena se
-    generará con el defecto (8 caracteres)
+    y se le añade una referencia a los dias transcurridos desde el 01/01/2000 y a los segundos del dia de hoy
+    hasta el momento de la generacion, ademas de un digito de control de 2 digitos al final; si se pasa como
+    parametro un numero fuera del intervalo (6 o 10), la cadena se generará con el defecto (8 caracteres)
     Una cadena aleatoria de 8 caracteres genera unos 1,5 billones de combinaciones posibles, por lo que junto a la 
     referencia de los dias y segundos, hace practicamente imposible que se repita el mismo numero, ya que aunque se
     generasen varios en el mismo segundo (cosa que no es posible), se garantiza la unicidad por la cadena de
@@ -39,7 +39,7 @@ namespace generarCSV
             }
 
             //Se genera el CSV con los caracteres pasados
-            string codigoCSV = CSVGenerator(largoCadena);
+            string codigoCSV = generarCSV(largoCadena);
 
             //Guarda el resultado en un archivo
             string nombreArchivo = "codigoCSV.txt";
@@ -57,7 +57,22 @@ namespace generarCSV
             }
         }
 
-        public static string CSVGenerator(int longitud)
+        public static string generarCSV(int largo)
+        {
+            int longitud = largo;
+            string calculoCadena = cadenaCSV(longitud);
+
+            string calculoTiempo = cadenaTiempo();
+
+            string csvPrevio = calculoTiempo + calculoCadena;
+
+            int dc = calculoDC(csvPrevio);
+
+            string csvCalculado = csvPrevio + dc;
+
+            return csvCalculado;
+        }
+        private static string cadenaCSV(int longitud)
         {
             // Generar cadena de n caracteres de forma aleatoria
             StringBuilder csv = new StringBuilder();
@@ -67,8 +82,12 @@ namespace generarCSV
                 char randomChar = Caracteres[Random.Next(Caracteres.Length)];
                 csv.Append(randomChar);
             }
-            string csvCalculado = csv.ToString();
+            string resultado = csv.ToString();
+            return resultado;
+        }
 
+        private static string cadenaTiempo()
+        {
             // Calculo de los dias que han pasado desde el 01/01/2000
             TimeSpan difDias = DateTime.Now - new DateTime(2000, 1, 1);
             int totalDias = (int)difDias.TotalDays;
@@ -76,9 +95,50 @@ namespace generarCSV
 
             //Calculo de los segundos transcurridos hoy en formato hexadecimal
             string hexSegundos = (DateTime.Now.Hour * 3600 + DateTime.Now.Minute * 60 + DateTime.Now.Second * 60).ToString("X5");
-            csvCalculado = hexDias + csvCalculado + hexSegundos;
 
-            return csvCalculado;
+            //Se combinan los segundos y dias en una sola cadena, cogiendo uno a uno los caracteres de cada una, pero los segundos se toman en orden inverso (el quinto de los segundos, con el primero de los dias, y asi sucesivamente hasta el total de 5 digitos de cada uno)
+            char[] cadena = new char[10];
+            for (int i = 0; i < 5; i++)
+            {
+                cadena[i * 2] = hexSegundos[4 - i];
+                cadena[i * 2 + 1] = hexDias[i];
+            }
+            string resultado = new string(cadena);
+            return resultado;
         }
+
+        static int calculoDC(string cadena)
+        {
+            int suma = 0;
+            int peso = 1;
+
+            // Iterar a través de los caracteres desde el final hacia el principio
+            for (int i = cadena.Length - 1; i >= 0; i--)
+            {
+                char caracter = cadena[i];
+
+                // Si el carácter es un número, calcula su valor numérico
+                if (char.IsDigit(caracter))
+                {
+                    int digito = caracter - '0';
+                    suma += digito * peso;
+                }
+                // Si el carácter es una letra, calcula su valor numérico basado en su posición en el alfabeto
+                else if (char.IsLetter(caracter))
+                {
+                    int valorLetra = char.ToUpper(caracter) - 'A' + 10; // A=10, B=11, ..., Z=35
+                    suma += valorLetra * peso;
+                }
+
+                // Alterna el peso (1 o 2)
+                peso = (peso == 1) ? 2 : 1;
+            }
+
+            // Calcula el dígito de control como el residuo de la suma dividida por 36 (números + letras)
+            int digitoControl = suma % 36;
+
+            return digitoControl;
+        }
+
     }
 }
