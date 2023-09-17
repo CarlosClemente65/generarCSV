@@ -2,8 +2,8 @@
     Creado por Carlos Clemente - sep/2023
     En cada ejecucion se genera una cadena de entre 6 y 10 caracteres de forma aleatoria (por defecto se generan 8)
     y se le añade una referencia a los dias transcurridos desde el 01/01/2000 y a los segundos del dia de hoy
-    hasta el momento de la generacion, ademas de un digito de control de 2 digitos al final; si se pasa como
-    parametro un numero fuera del intervalo (6 o 10), la cadena se generará con el defecto (8 caracteres)
+    hasta el momento de la generacion, ademas de un digito de control de 2 digitos al final
+    Si se pasa como parametro un numero fuera del intervalo (6 o 10), la cadena se generará con el defecto (8 caracteres), y si el primer parametro es '-c' junto a un CSV se comprueba que si es correcto y cuando se genero.
     Una cadena aleatoria de 8 caracteres genera unos 1,5 billones de combinaciones posibles, por lo que junto a la 
     referencia de los dias y segundos, hace practicamente imposible que se repita el mismo numero, ya que aunque se
     generasen varios en el mismo segundo (cosa que no es posible), se garantiza la unicidad por la cadena de
@@ -27,13 +27,31 @@ namespace generarCSV
         {
             int num;
             // Comprueba si se pasa como parametro el numero de caracteres a generar
-            if (parametros.Length>0)
+            if (parametros.Length > 0)
             {
                 if (int.TryParse(parametros[0], out num))
                 {
                     if (num >= 6 && num <= 10)
                     {
                         largoCadena = num;
+                    }
+                }
+                else
+                {
+                    if (parametros[0] == "-c")
+                    {
+                        if (parametros.Length > 1)
+                        {
+                            compruebaCSV(parametros[1]);
+                            return;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Debe introducir un csv");
+                            Console.ReadLine();
+                        }
+
+
                     }
                 }
             }
@@ -54,6 +72,74 @@ namespace generarCSV
             catch (Exception ex)
             {
                 Console.WriteLine("Error al generar el archivo: " + ex.Message);
+            }
+        }
+
+        private static void compruebaCSV(string Csv)
+        {
+            {
+                // Obtiene el digito de control del CSV pasando los caracteres menos los dos ultimos (son el DC) y comprueba si coinciden con los dos ultimos caracteres del CSV
+                int chkDC = calculoDC(Csv.Substring(0, Csv.Length - 2));
+                bool okDC = chkDC.ToString() == Csv.Substring(Csv.Length - 2, 2);
+
+                // Obtiene los datos de la fecha del CSV
+                string fechaPrevia = Csv.Substring(0, 10);
+                string dias = "";
+                string segundos = "";
+                for (int i = 0; i < 10; i++)
+                {
+                    if (i % 2 == 0)
+                    {
+                        //Los segundos estan en las posiciones pares y en orden inverso, por lo que se van almacenando delante de los que ya se han ido obteniendo
+                        segundos = fechaPrevia[i] + segundos;
+                    }
+                    else
+                    {
+                        //Los dias estan las posiciones impares y en orden, por lo que se van almacenando uno detras de otro segun se obtienen
+                        dias += fechaPrevia[i];
+                    }
+                }
+
+                //Convierte los segundos y los dias que estan en hexadecimal a numeros enteros
+                int totalSegundos = int.TryParse(segundos, System.Globalization.NumberStyles.HexNumber, null, out int resultSegundos) ? resultSegundos : 0;
+                int totalDias = int.TryParse(dias, System.Globalization.NumberStyles.HexNumber, null, out int resultDias) ? resultDias : 0;
+
+                //Calcula la fecha sumando los dias al 01/01/2000
+                DateTime fecha = new DateTime(2000, 1, 1).AddDays(totalDias);
+                string fechaStr = fecha.ToString("dd 'de' MMMM 'de' yyyy");
+
+
+                //Calcula la hora de acuerdo con los segundos obtenidos
+                TimeSpan tiempo = TimeSpan.FromSeconds(totalSegundos);
+                int h = totalSegundos / 3600;
+                int m = (totalSegundos % 3600) / 60;
+                int s = totalSegundos % 60;
+                string hora = string.Format("{0:D2}:{1:D2}:{2:D2}", h, m, s);
+
+                //Guarda el resultado en un archivo
+                string nombreArchivo = "codigoCSV.txt";
+                try
+                {
+                    using (StreamWriter grabar = new StreamWriter(nombreArchivo))
+                    {
+                        string texto = string.Empty;
+                        if (okDC)
+                        {
+                            texto = $"CSV: {Csv}\nResultado: OK\nGenerado: {fechaStr} a las {hora}";
+                            grabar.WriteLine(texto);
+                        }
+                        else
+                        {
+                            texto = $"El CSV {Csv} no es correcto";
+                            grabar.WriteLine(texto);
+                        }
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error al generar el archivo: " + ex.Message);
+                }
             }
         }
 
@@ -94,7 +180,8 @@ namespace generarCSV
             string hexDias = totalDias.ToString("X5"); //Se pasan a hexadecimal
 
             //Calculo de los segundos transcurridos hoy en formato hexadecimal
-            string hexSegundos = (DateTime.Now.Hour * 3600 + DateTime.Now.Minute * 60 + DateTime.Now.Second * 60).ToString("X5");
+
+            string hexSegundos = (DateTime.Now.Hour * 3600 + DateTime.Now.Minute * 60 + DateTime.Now.Second).ToString("X5");
 
             //Se combinan los segundos y dias en una sola cadena, cogiendo uno a uno los caracteres de cada una, pero los segundos se toman en orden inverso (el quinto de los segundos, con el primero de los dias, y asi sucesivamente hasta el total de 5 digitos de cada uno)
             char[] cadena = new char[10];
