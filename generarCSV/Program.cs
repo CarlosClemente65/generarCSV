@@ -50,8 +50,17 @@ namespace generarCSV
                             Console.WriteLine("Debe introducir un csv");
                             Console.ReadLine();
                         }
-
-
+                    }
+                    else if (parametros[0] == "-h")
+                    {
+                        Console.WriteLine("Uso de la aplicacion");
+                        Console.WriteLine("generarCSV [opciones]\n");
+                        Console.WriteLine("Opciones:");
+                        Console.WriteLine("    n (numero de digitos de 6 a 10)");
+                        Console.WriteLine("   -c CSV a comprobar");
+                        Console.WriteLine("   -h esta ayuda\n");
+                        Console.WriteLine("Pulse una tecla para salir");
+                        Console.ReadKey();
                     }
                 }
             }
