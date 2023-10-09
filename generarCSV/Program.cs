@@ -208,8 +208,8 @@ namespace generarCSV
             int suma = 0;
             int peso = 1;
 
-            // Iterar a través de los caracteres desde el final hacia el principio
-            for (int i = cadena.Length - 1; i >= 0; i--)
+            // Iterar a través de los caracteres 
+            for (int i = 0; i <= cadena.Length - 1; i++)
             {
                 char caracter = cadena[i];
 
@@ -230,8 +230,8 @@ namespace generarCSV
                 peso = (peso == 1) ? 2 : 1;
             }
 
-            // Calcula el dígito de control como el residuo de la suma dividida por 36 (números + letras)
-            int digitoControl = suma % 36;
+            // Calcula el dígito de control como el resultado de restar a 98 el residuo de la suma dividida por 97 (números + letras)
+            int digitoControl = (98 - (suma % 97));
 
             return digitoControl;
         }
