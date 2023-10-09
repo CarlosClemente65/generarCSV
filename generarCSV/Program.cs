@@ -48,6 +48,7 @@ namespace generarCSV
                         else
                         {
                             Console.WriteLine("Debe introducir un csv");
+                            Console.WriteLine("Pulse una tecla para salir");
                             Console.ReadLine();
                         }
                     }
@@ -186,13 +187,13 @@ namespace generarCSV
             // Calculo de los dias que han pasado desde el 01/01/2000
             TimeSpan difDias = DateTime.Now - new DateTime(2000, 1, 1);
             int totalDias = (int)difDias.TotalDays;
-            string hexDias = totalDias.ToString("X5"); //Se pasan a hexadecimal
+            string hexDias = totalDias.ToString("X5"); //Se pasan a hexadecimal con 5 caracteres
 
-            //Calculo de los segundos transcurridos hoy en formato hexadecimal
+            //Calculo de los segundos transcurridos hoy en formato hexadecimal con 5 caracteres
 
             string hexSegundos = (DateTime.Now.Hour * 3600 + DateTime.Now.Minute * 60 + DateTime.Now.Second).ToString("X5");
 
-            //Se combinan los segundos y dias en una sola cadena, cogiendo uno a uno los caracteres de cada una, pero los segundos se toman en orden inverso (el quinto de los segundos, con el primero de los dias, y asi sucesivamente hasta el total de 5 digitos de cada uno)
+            //Se combinan los segundos y dias en una sola cadena de 10 digitos, cogiendo uno a uno los caracteres de cada una, pero los segundos se toman en orden inverso (el quinto de los segundos, con el primero de los dias, y asi sucesivamente hasta el total de 5 digitos de cada uno)
             char[] cadena = new char[10];
             for (int i = 0; i < 5; i++)
             {
