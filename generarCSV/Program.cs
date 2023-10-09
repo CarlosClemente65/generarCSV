@@ -4,6 +4,7 @@
     y se le añade una referencia a los dias transcurridos desde el 01/01/2000 y a los segundos del dia de hoy
     hasta el momento de la generacion, ademas de un digito de control de 2 digitos al final
     Si se pasa como parametro un numero fuera del intervalo (6 o 10), la cadena se generará con el defecto (8 caracteres), y si el primer parametro es '-c' junto a un CSV se comprueba que si es correcto y cuando se genero.
+    Si se pasa como parametro -u ademas del CSV genera un codigo uuid que se graba en el fichero de salida.
     Una cadena aleatoria de 8 caracteres genera unos 1,5 billones de combinaciones posibles, por lo que junto a la 
     referencia de los dias y segundos, hace practicamente imposible que se repita el mismo numero, ya que aunque se
     generasen varios en el mismo segundo (cosa que no es posible), se garantiza la unicidad por la cadena de
@@ -22,47 +23,56 @@ namespace generarCSV
         private static readonly string Caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; //Caracteres que se utilizan en la generacion
         private static readonly Random Random = new Random();
         private static int largoCadena = 8; //Sera el defecto de longitud de la cadena
+        private static Guid uuid = Guid.NewGuid();
+        private static string salidaTxt = string.Empty;
 
         static void Main(string[] parametros)
         {
             int num;
             // Comprueba si se pasa como parametro el numero de caracteres a generar
-            if (parametros.Length > 0)
+            if (parametros.Length > 2)
             {
-                if (int.TryParse(parametros[0], out num))
+                Console.Clear();
+                Console.WriteLine("Numero de parametros erroneo");
+                textoAyuda();
+            }
+            else if (parametros.Length > 0)
+            {
+                if (parametros[0] == "-c")
                 {
-                    if (num >= 6 && num <= 10)
+                    if (parametros.Length > 1)
                     {
-                        largoCadena = num;
-                    }
-                }
-                else
-                {
-                    if (parametros[0] == "-c")
-                    {
-                        if (parametros.Length > 1)
+                        if (!parametros[1].StartsWith("-"))
                         {
                             compruebaCSV(parametros[1]);
                             return;
                         }
                         else
                         {
-                            Console.WriteLine("Debe introducir un csv");
-                            Console.WriteLine("Pulse una tecla para salir");
-                            Console.ReadLine();
+                            Console.Clear();
+                            Console.WriteLine("Parametros incorrectos");
+                            textoAyuda();
                         }
                     }
-                    else if (parametros[0] == "-h")
+                    else
                     {
-                        Console.WriteLine("Uso de la aplicacion");
-                        Console.WriteLine("generarCSV [opciones]\n");
-                        Console.WriteLine("Opciones:");
-                        Console.WriteLine("    n (numero de digitos de 6 a 10)");
-                        Console.WriteLine("   -c CSV a comprobar");
-                        Console.WriteLine("   -h esta ayuda\n");
-                        Console.WriteLine("Pulse una tecla para salir");
-                        Console.ReadKey();
+                        Console.Clear();
+                        Console.WriteLine("Debe introducir un csv");
+                        textoAyuda();
                     }
+                }
+                else if (int.TryParse(parametros[0], out num) && num >= 6 && num <= 10)
+                {
+                    largoCadena = num;
+                }
+                else if (parametros[0] == "-h")
+                {
+                    Console.Clear();
+                    textoAyuda();
+                }
+                else if (parametros[0] == "-u")
+                {
+                    salidaTxt = "uuid: " + uuid.ToString().ToUpper();
                 }
             }
 
@@ -75,7 +85,7 @@ namespace generarCSV
             {
                 using (StreamWriter grabar = new StreamWriter(nombreArchivo))
                 {
-                    string texto = $"El codigo CSV generado es: {codigoCSV}";
+                    string texto = $"CSV: {codigoCSV}" + "\n" + salidaTxt;
                     grabar.WriteLine(texto);
                 }
             }
@@ -83,6 +93,19 @@ namespace generarCSV
             {
                 Console.WriteLine("Error al generar el archivo: " + ex.Message);
             }
+        }
+
+        private static void textoAyuda()
+        {
+            Console.WriteLine("Uso de la aplicacion");
+            Console.WriteLine("generarCSV [opciones]\n");
+            Console.WriteLine("Opciones:");
+            Console.WriteLine("\t n Si se informa debe ser el primer parametro, e indica el numero de digitos (6 a 10) que tendra el CSV");
+            Console.WriteLine("\t-u Genera codigo uuid ademas del CSV. No debe pasarse ningun otro parametro");
+            Console.WriteLine("\t-c CSV a comprobar");
+            Console.WriteLine("\t-h esta ayuda\n");
+            Console.WriteLine("Pulse una tecla para salir");
+            Console.ReadKey();
         }
 
         private static void compruebaCSV(string Csv)
