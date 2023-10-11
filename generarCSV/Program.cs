@@ -25,73 +25,64 @@ namespace generarCSV
         private static int largoCadena = 8; //Sera el defecto de longitud de la cadena
         private static Guid uuid = Guid.NewGuid();
         private static string salidaTxt = string.Empty;
+        private static string texto = string.Empty;
 
         static void Main(string[] parametros)
         {
-            int num;
-            // Comprueba si se pasa como parametro el numero de caracteres a generar
-            if (parametros.Length > 2)
+            if (parametros.Length == 0)
             {
-                Console.Clear();
-                Console.WriteLine("Numero de parametros erroneo");
-                textoAyuda();
+                //Se genera el CSV con los caracteres pasados
+                string codigoCSV = generarCSV(largoCadena);
+
+                //Guarda el resultado en un archivo
+                texto = $"CSV: {codigoCSV}" + "\n" + salidaTxt;
+                grabarArchivo(texto);
+                return;
             }
-            else if (parametros.Length > 0)
+            else if (parametros.Length == 1)
             {
                 if (parametros[0] == "-c")
                 {
-                    if (parametros.Length > 1)
-                    {
-                        if (!parametros[1].StartsWith("-"))
-                        {
-                            compruebaCSV(parametros[1]);
-                            return;
-                        }
-                        else
-                        {
-                            Console.Clear();
-                            Console.WriteLine("Parametros incorrectos");
-                            textoAyuda();
-                        }
-                    }
-                    else
-                    {
-                        Console.Clear();
-                        Console.WriteLine("Debe introducir un csv");
-                        textoAyuda();
-                    }
-                }
-                else if (int.TryParse(parametros[0], out num) && num >= 6 && num <= 10)
-                {
-                    largoCadena = num;
+                    Console.Clear();
+                    Console.WriteLine("Debe introducir un codigo CSV\n");
+                    textoAyuda();
+                    return;
                 }
                 else if (parametros[0] == "-h")
                 {
                     Console.Clear();
                     textoAyuda();
+                    return;
                 }
-                else if (parametros[0] == "-u")
+                else
                 {
-                    salidaTxt = "uuid: " + uuid.ToString().ToUpper();
+                    Console.Clear();
+                    Console.WriteLine("Parametros incorrectos\n");
+                    textoAyuda();
+                    return;
                 }
             }
-
-            //Se genera el CSV con los caracteres pasados
-            string codigoCSV = generarCSV(largoCadena);
-
-            //Guarda el resultado en un archivo
-            string nombreArchivo = "codigoCSV.txt";
-            try
+            else if (parametros.Length == 2)
             {
-                using (StreamWriter grabar = new StreamWriter(nombreArchivo))
+                if (parametros[0] == "-c")
                 {
-                    string texto = $"CSV: {codigoCSV}" + "\n" + salidaTxt;
-                    grabar.WriteLine(texto);
+                    compruebaCSV(parametros[1]);
+                    return;
+                }
+                else
+                {
+                    Console.Clear();
+                    Console.WriteLine("Parametros incorrectos\n");
+                    textoAyuda();
+                    return;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine("Error al generar el archivo: " + ex.Message);
+                Console.Clear();
+                Console.WriteLine("Parametros incorrectos\n");
+                textoAyuda();
+                return;
             }
         }
 
@@ -100,8 +91,7 @@ namespace generarCSV
             Console.WriteLine("Uso de la aplicacion");
             Console.WriteLine("generarCSV [opciones]\n");
             Console.WriteLine("Opciones:");
-            Console.WriteLine("\t n Si se informa debe ser el primer parametro, e indica el numero de digitos (6 a 10) que tendra el CSV");
-            Console.WriteLine("\t-u Genera codigo uuid ademas del CSV. No debe pasarse ningun otro parametro");
+            Console.WriteLine("\tSi no se pasan parametros se genera el CSV con 20 caracteres");
             Console.WriteLine("\t-c CSV a comprobar");
             Console.WriteLine("\t-h esta ayuda\n");
             Console.WriteLine("Pulse una tecla para salir");
@@ -110,69 +100,90 @@ namespace generarCSV
 
         private static void compruebaCSV(string Csv)
         {
+            //Comprueba si el csv pasado tiene 20 caracteres
+            if (Csv.Length != 20)
+            {
+                texto = "Error. El csv debe tener 20 caracteres";
+                grabarArchivo(texto);
+                return;
+            }
+            try
             {
                 // Obtiene el digito de control del CSV pasando los caracteres menos los dos ultimos (son el DC) y comprueba si coinciden con los dos ultimos caracteres del CSV
                 int chkDC = calculoDC(Csv.Substring(0, Csv.Length - 2));
                 bool okDC = chkDC.ToString() == Csv.Substring(Csv.Length - 2, 2);
 
-                // Obtiene los datos de la fecha del CSV
-                string fechaPrevia = Csv.Substring(0, 10);
-                string dias = "";
-                string segundos = "";
-                for (int i = 0; i < 10; i++)
+                //Si el digito de control es correcto obtiene la fecha y hora para pasarla al fichero
+                if (okDC)
                 {
-                    if (i % 2 == 0)
+                    // Obtiene los datos de la fecha del CSV
+                    string fechaPrevia = Csv.Substring(0, 10);
+                    string dias = "";
+                    string segundos = "";
+                    for (int i = 0; i < 10; i++)
                     {
-                        //Los segundos estan en las posiciones pares y en orden inverso, por lo que se van almacenando delante de los que ya se han ido obteniendo
-                        segundos = fechaPrevia[i] + segundos;
-                    }
-                    else
-                    {
-                        //Los dias estan las posiciones impares y en orden, por lo que se van almacenando uno detras de otro segun se obtienen
-                        dias += fechaPrevia[i];
-                    }
-                }
-
-                //Convierte los segundos y los dias que estan en hexadecimal a numeros enteros
-                int totalSegundos = int.TryParse(segundos, System.Globalization.NumberStyles.HexNumber, null, out int resultSegundos) ? resultSegundos : 0;
-                int totalDias = int.TryParse(dias, System.Globalization.NumberStyles.HexNumber, null, out int resultDias) ? resultDias : 0;
-
-                //Calcula la fecha sumando los dias al 01/01/2000
-                DateTime fecha = new DateTime(2000, 1, 1).AddDays(totalDias);
-                string fechaStr = fecha.ToString("dd 'de' MMMM 'de' yyyy");
-
-
-                //Calcula la hora de acuerdo con los segundos obtenidos
-                TimeSpan tiempo = TimeSpan.FromSeconds(totalSegundos);
-                int h = totalSegundos / 3600;
-                int m = (totalSegundos % 3600) / 60;
-                int s = totalSegundos % 60;
-                string hora = string.Format("{0:D2}:{1:D2}:{2:D2}", h, m, s);
-
-                //Guarda el resultado en un archivo
-                string nombreArchivo = "codigoCSV.txt";
-                try
-                {
-                    using (StreamWriter grabar = new StreamWriter(nombreArchivo))
-                    {
-                        string texto = string.Empty;
-                        if (okDC)
+                        if (i % 2 == 0)
                         {
-                            texto = $"CSV: {Csv}\nResultado: OK\nGenerado: {fechaStr} a las {hora}";
-                            grabar.WriteLine(texto);
+                            //Los segundos estan en las posiciones pares y en orden inverso, por lo que se van almacenando delante de los que ya se han ido obteniendo
+                            segundos = fechaPrevia[i] + segundos;
                         }
                         else
                         {
-                            texto = $"El CSV {Csv} no es correcto";
-                            grabar.WriteLine(texto);
+                            //Los dias estan las posiciones impares y en orden, por lo que se van almacenando uno detras de otro segun se obtienen
+                            dias += fechaPrevia[i];
                         }
-                        return;
                     }
+
+                    //Convierte los segundos y los dias que estan en hexadecimal a numeros enteros
+                    int totalSegundos = int.TryParse(segundos, System.Globalization.NumberStyles.HexNumber, null, out int resultSegundos) ? resultSegundos : 0;
+                    int totalDias = int.TryParse(dias, System.Globalization.NumberStyles.HexNumber, null, out int resultDias) ? resultDias : 0;
+
+                    //Calcula la fecha sumando los dias al 01/01/2000
+                    DateTime fecha = new DateTime(2000, 1, 1).AddDays(totalDias);
+                    string fechaStr = fecha.ToString("dd 'de' MMMM 'de' yyyy");
+
+                    //Calcula la hora de acuerdo con los segundos obtenidos
+                    TimeSpan tiempo = TimeSpan.FromSeconds(totalSegundos);
+                    int h = totalSegundos / 3600;
+                    int m = (totalSegundos % 3600) / 60;
+                    int s = totalSegundos % 60;
+                    string hora = string.Format("{0:D2}:{1:D2}:{2:D2}", h, m, s);
+
+
+                    //Prepara el texto con los datos calculados para pasarlo como parametro y grabar el fichero 
+                    texto = $"CSV: {Csv}\nResultado: OK\nGenerado: {fechaStr} a las {hora}";
+                    grabarArchivo(texto);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine("Error al generar el archivo: " + ex.Message);
+                    //Si el digito de control no es correcto, graba en el fichero el texto
+                    texto = $"Error. El CSV {Csv} no es correcto";
+                    grabarArchivo(texto);
                 }
+            }
+            catch (Exception ex)
+            {
+                //Si se produce algun error a la hora de obtener los datos del CSV se da como invalido el CSV
+                texto = ("Error. El CSV no es correcto");
+                grabarArchivo(texto);
+            }
+        }
+
+        public static void grabarArchivo(string mensaje)
+        {
+            //Guarda el resultado en un archivo
+            string nombreArchivo = "codigoCSV.txt";
+            try
+            {
+                using (StreamWriter grabar = new StreamWriter(nombreArchivo))
+                {
+                    grabar.WriteLine(mensaje);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error al generar el archivo: " + ex.Message);
             }
         }
 
