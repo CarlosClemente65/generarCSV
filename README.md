@@ -1,7 +1,7 @@
 # generarCSV
 ## Programa para generar Codigos Seguros de Verificacion (CSV)
 
-### Desarrollado por Carlos Clemente (09-2023)
+### Desarrollado por Carlos Clemente (11-2024)
 
 Instrucciones:
 - Se puede pasar como parametro un numero entero entre 6 y 10, que sera la longitud de la
@@ -15,6 +15,9 @@ Instrucciones:
   de combinaciones posibles, por lo que aunque se generasen varios codigos en el mismo segundo,
   los caracteres aleatorios haran que sea practicamente imposible que se generen dos CSV iguales.
   
-Version 1.2.1
+Version 1.2.1 (09-2023)
 - Añadida la funcionalidad de chequeo de un CSV que se pase con el parametro -c
 - Añadida ayuda por linea de comandos si se introduce el parametro -h
+
+Version 1.3 (11-2024)
+- Modificado metodo de generacion para que siempre sean trece caracteres, los diez primeros aleatorios, los dos siguientes basados en la fecha, y el ultimo es el digito de control
