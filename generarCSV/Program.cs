@@ -1,18 +1,14 @@
 ﻿/*  Generador de codigos seguros de verificacion (CSV)
     Creado por Carlos Clemente - sep/2023
-    En cada ejecucion se genera una cadena de entre 6 y 10 caracteres de forma aleatoria (por defecto se generan 8)
-    y se le añade una referencia a los dias transcurridos desde el 01/01/2000 y a los segundos del dia de hoy
-    hasta el momento de la generacion, ademas de un digito de control de 2 digitos al final
-    Si se pasa como parametro un numero fuera del intervalo (6 o 10), la cadena se generará con el defecto (8 caracteres), y si el primer parametro es '-c' junto a un CSV se comprueba que si es correcto y cuando se genero.
-    Una cadena aleatoria de 8 caracteres genera unos 1,5 billones de combinaciones posibles, por lo que junto a la 
-    referencia de los dias y segundos, hace practicamente imposible que se repita el mismo numero, ya que aunque se
-    generasen varios en el mismo segundo (cosa que no es posible), se garantiza la unicidad por la cadena de
-    caracteres aleatorios.
+    En cada ejecucion se genera una cadena de 13 caracteres con 10 caracteres aleatorios de un patron de caracteres, seguido de 2 caracteres obtenidos a partir de la fecha de generacion y el ultimo es un digito de control
+    Una cadena aleatoria de 12 caracteres desde un patron de 36 caracteres, genera unos 4,7 cuatrillones de combinaciones posibles, por lo que es practicamente imposible que se repita el mismo numero, ya que aunque se generasen varios en el mismo segundo (cosa que no es posible), se garantiza la unicidad por la cadena de caracteres aleatorios.
 */
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Security.Cryptography;
 
 namespace generarCSV
 {
@@ -21,109 +17,43 @@ namespace generarCSV
         //Definicion de variables
         private static readonly string Caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; //Caracteres que se utilizan en la generacion
         private static readonly Random Random = new Random();
-        private static int largoCadena = 8; //Sera el defecto de longitud de la cadena
+        private static int largoCadena = 10; //Se corresponde con los caracteres aleatorios
 
         static void Main(string[] parametros)
         {
-            int num;
             // Comprueba si se pasa como parametro el numero de caracteres a generar
             if (parametros.Length > 0)
             {
-                if (int.TryParse(parametros[0], out num))
+                switch (parametros[0])
                 {
-                    if (num >= 6 && num <= 10)
-                    {
-                        largoCadena = num;
-                    }
-                }
-                else
-                {
-                    if (parametros[0] == "-c")
-                    {
+                    case "-c":
                         if (parametros.Length > 1)
                         {
-                            compruebaCSV(parametros[1]);
-                            return;
+                            //compruebaCSV(parametros[1]);
+                            chequeaCSV(parametros[1]);
                         }
                         else
                         {
                             Console.WriteLine("Debe introducir un csv");
                             Console.ReadLine();
                         }
-                    }
-                    else if (parametros[0] == "-h")
-                    {
+                        break;
+
+                    case "-h":
                         Console.WriteLine("Uso de la aplicacion");
                         Console.WriteLine("generarCSV [opciones]\n");
                         Console.WriteLine("Opciones:");
-                        Console.WriteLine("    n (numero de digitos de 6 a 10)");
                         Console.WriteLine("   -c CSV a comprobar");
                         Console.WriteLine("   -h esta ayuda\n");
                         Console.WriteLine("Pulse una tecla para salir");
                         Console.ReadKey();
-                    }
+                        break;
                 }
             }
-
-            //Se genera el CSV con los caracteres pasados
-            string codigoCSV = generarCSV(largoCadena);
-
-            //Guarda el resultado en un archivo
-            string nombreArchivo = "codigoCSV.txt";
-            try
+            else
             {
-                using (StreamWriter grabar = new StreamWriter(nombreArchivo))
-                {
-                    string texto = $"El codigo CSV generado es: {codigoCSV}";
-                    grabar.WriteLine(texto);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error al generar el archivo: " + ex.Message);
-            }
-        }
-
-        private static void compruebaCSV(string Csv)
-        {
-            {
-                // Obtiene el digito de control del CSV pasando los caracteres menos los dos ultimos (son el DC) y comprueba si coinciden con los dos ultimos caracteres del CSV
-                int chkDC = calculoDC(Csv.Substring(0, Csv.Length - 2));
-                bool okDC = chkDC.ToString() == Csv.Substring(Csv.Length - 2, 2);
-
-                // Obtiene los datos de la fecha del CSV
-                string fechaPrevia = Csv.Substring(0, 10);
-                string dias = "";
-                string segundos = "";
-                for (int i = 0; i < 10; i++)
-                {
-                    if (i % 2 == 0)
-                    {
-                        //Los segundos estan en las posiciones pares y en orden inverso, por lo que se van almacenando delante de los que ya se han ido obteniendo
-                        segundos = fechaPrevia[i] + segundos;
-                    }
-                    else
-                    {
-                        //Los dias estan las posiciones impares y en orden, por lo que se van almacenando uno detras de otro segun se obtienen
-                        dias += fechaPrevia[i];
-                    }
-                }
-
-                //Convierte los segundos y los dias que estan en hexadecimal a numeros enteros
-                int totalSegundos = int.TryParse(segundos, System.Globalization.NumberStyles.HexNumber, null, out int resultSegundos) ? resultSegundos : 0;
-                int totalDias = int.TryParse(dias, System.Globalization.NumberStyles.HexNumber, null, out int resultDias) ? resultDias : 0;
-
-                //Calcula la fecha sumando los dias al 01/01/2000
-                DateTime fecha = new DateTime(2000, 1, 1).AddDays(totalDias);
-                string fechaStr = fecha.ToString("dd 'de' MMMM 'de' yyyy");
-
-
-                //Calcula la hora de acuerdo con los segundos obtenidos
-                TimeSpan tiempo = TimeSpan.FromSeconds(totalSegundos);
-                int h = totalSegundos / 3600;
-                int m = (totalSegundos % 3600) / 60;
-                int s = totalSegundos % 60;
-                string hora = string.Format("{0:D2}:{1:D2}:{2:D2}", h, m, s);
+                //Se genera el CSV con los caracteres pasados
+                string codigoCSV = generarCSV();
 
                 //Guarda el resultado en un archivo
                 string nombreArchivo = "codigoCSV.txt";
@@ -131,18 +61,8 @@ namespace generarCSV
                 {
                     using (StreamWriter grabar = new StreamWriter(nombreArchivo))
                     {
-                        string texto = string.Empty;
-                        if (okDC)
-                        {
-                            texto = $"CSV: {Csv}\nResultado: OK\nGenerado: {fechaStr} a las {hora}";
-                            grabar.WriteLine(texto);
-                        }
-                        else
-                        {
-                            texto = $"El CSV {Csv} no es correcto";
-                            grabar.WriteLine(texto);
-                        }
-                        return;
+                        string texto = $"El codigo CSV generado es: {codigoCSV}";
+                        grabar.WriteLine(texto);
                     }
                 }
                 catch (Exception ex)
@@ -152,67 +72,48 @@ namespace generarCSV
             }
         }
 
-        public static string generarCSV(int largo)
+        public static string generarCSV()
         {
-            int longitud = largo;
-            string calculoCadena = cadenaCSV(longitud);
+            string cadenaAleatoria = caracteresAleatorios(largoCadena);
 
-            string calculoTiempo = cadenaTiempo();
+            string cadenaFecha = caracteresFecha();
 
-            string csvPrevio = calculoTiempo + calculoCadena;
+            string csvPrevio = cadenaAleatoria + cadenaFecha;
 
-            int dc = calculoDC(csvPrevio);
+            char digitoControl = calculoDigitoControl(csvPrevio);
 
-            string csvCalculado = csvPrevio + dc;
-
-            return csvCalculado;
+            return csvPrevio + digitoControl;
         }
-        private static string cadenaCSV(int longitud)
+        private static string caracteresAleatorios(int longitud)
         {
             // Generar cadena de n caracteres de forma aleatoria
             StringBuilder csv = new StringBuilder();
-            for (int i = 0; i < longitud; i++)
+            byte[] randomBytes = new byte[longitud];
+
+            // Usar RandomNumberGenerator para llenar el arreglo de bytes aleatorios
+            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
             {
-                // Elegir un carácter aleatorio de la cadena de caracteres y añadirlo a la variable
-                char randomChar = Caracteres[Random.Next(Caracteres.Length)];
-                csv.Append(randomChar);
+                rng.GetBytes(randomBytes);
             }
-            string resultado = csv.ToString();
-            return resultado;
+
+            // Convertir cada byte a un índice dentro de la cadena de caracteres permitidos
+            foreach (byte b in randomBytes)
+            {
+                int index = b % Caracteres.Length;
+                csv.Append(Caracteres[index]);
+            }
+
+            return csv.ToString();
         }
 
-        private static string cadenaTiempo()
-        {
-            // Calculo de los dias que han pasado desde el 01/01/2000
-            TimeSpan difDias = DateTime.Now - new DateTime(2000, 1, 1);
-            int totalDias = (int)difDias.TotalDays;
-            string hexDias = totalDias.ToString("X5"); //Se pasan a hexadecimal
-
-            //Calculo de los segundos transcurridos hoy en formato hexadecimal
-
-            string hexSegundos = (DateTime.Now.Hour * 3600 + DateTime.Now.Minute * 60 + DateTime.Now.Second).ToString("X5");
-
-            //Se combinan los segundos y dias en una sola cadena, cogiendo uno a uno los caracteres de cada una, pero los segundos se toman en orden inverso (el quinto de los segundos, con el primero de los dias, y asi sucesivamente hasta el total de 5 digitos de cada uno)
-            char[] cadena = new char[10];
-            for (int i = 0; i < 5; i++)
-            {
-                cadena[i * 2] = hexSegundos[4 - i];
-                cadena[i * 2 + 1] = hexDias[i];
-            }
-            string resultado = new string(cadena);
-            return resultado;
-        }
-
-        static int calculoDC(string cadena)
+        static char calculoDigitoControl(string cadena)
         {
             int suma = 0;
             int peso = 1;
 
             // Iterar a través de los caracteres desde el final hacia el principio
-            for (int i = cadena.Length - 1; i >= 0; i--)
+            foreach (char caracter in cadena.Reverse())
             {
-                char caracter = cadena[i];
-
                 // Si el carácter es un número, calcula su valor numérico
                 if (char.IsDigit(caracter))
                 {
@@ -228,13 +129,49 @@ namespace generarCSV
 
                 // Alterna el peso (1 o 2)
                 peso = (peso == 1) ? 2 : 1;
+
             }
 
-            // Calcula el dígito de control como el residuo de la suma dividida por 36 (números + letras)
-            int digitoControl = suma % 36;
-
-            return digitoControl;
+            // Calcula el dígito de control como el residuo de la suma dividida por 36 (números + letras) y devuelve el caracter que corresponde al indice del patron de carateres.
+            return Caracteres[suma % 36];
         }
 
+
+        private static string caracteresFecha()
+        {
+            DateTime fechaActual = DateTime.Now;
+            string fecha = fechaActual.ToString("ddMMyy");
+
+            int indice1 = int.Parse(fecha) % 36; //Primer caracter con la fecha sin modificar
+            int indice2 = int.Parse(new string(fecha.Reverse().ToArray())) % 36; //Segundo caracter con la fecha al reves
+
+            return $"{Caracteres[indice1]}{Caracteres[indice2]}";
+        }
+
+        private static void chequeaCSV(string _csv)
+        {
+            string texto = string.Empty;
+            string nombreArchivo = "codigoCSV.txt";
+            if (_csv.Length != largoCadena + 3 || _csv == null)
+            {
+                texto = $"El CSV {_csv} debe tener una longitud de {largoCadena + 3} y solo tiene {_csv.Length}";
+            }
+            else
+            {
+                texto = (calculoDigitoControl(_csv.Substring(0, _csv.Length - 1)) == _csv[_csv.Length - 1]) ? $"El CSV {_csv} es correcto" : $"El CSV {_csv} no es correcto";
+            }
+
+            try
+            {
+                using (StreamWriter grabar = new StreamWriter(nombreArchivo))
+                {
+                    grabar.WriteLine(texto);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error al generar el archivo: " + ex.Message);
+            }
+        }
     }
 }
